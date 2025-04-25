@@ -1,0 +1,35 @@
+# Maven build output
+target/
+
+# IntelliJ IDEA project files
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Maven wrapper files
+.mvn/
+.mvn/wrapper/maven-wrapper.jar
+
+# Log files
+*.log
+
+# Compiled class files
+*.class
+
+# Package files
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+dependency-reduced-pom.xml
+
+# Virtual machine crash logs
+hs_err_pid*
+
+# User-specific files
+.idea
