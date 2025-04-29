@@ -1,5 +1,6 @@
 package com.mycompany.avrotools;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -45,12 +46,71 @@ public class AvroSchemaGenerator {
         // Reorder the fields in the schema string
         String reorderedSchemaStr = reorderSchemaFields(schema.toString(), cls);
 
+        String resultJson = provideCommandDtoMetaData(reorderedSchemaStr, cls);
+
+        // Write the result to the output file
         File out = new File(args[1]);
         try (FileWriter w = new FileWriter(out)) {
-            w.write(reorderedSchemaStr);
+            w.write(resultJson);
         }
 
         System.out.println("Wrote Avro schema to " + out.getAbsolutePath());
+    }
+
+    private static String provideCommandDtoMetaData(String reorderedSchemaStr, Class<?> cls) throws JsonProcessingException {
+        // Parse the reordered schema to extract its fields
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode schemaNode = mapper.readTree(reorderedSchemaStr);
+        JsonNode schemaFields = schemaNode.get("fields");
+
+// Create the root object
+        ObjectNode rootNode = mapper.createObjectNode();
+        rootNode.put("name", cls.getName()+"Payload");
+        rootNode.put("namespace", "com.bestseller.bestone.bi4.sales.transactions");
+        rootNode.put("type", "record");
+
+// Create the fields array for the root
+        ArrayNode rootFields = mapper.createArrayNode();
+
+// Add the standard fields
+        ObjectNode payloadClassNameNode = mapper.createObjectNode();
+        payloadClassNameNode.put("name", "payloadClassName");
+        payloadClassNameNode.put("type", "string");
+        rootFields.add(payloadClassNameNode);
+
+        ObjectNode payloadKeyNode = mapper.createObjectNode();
+        payloadKeyNode.put("name", "payloadKey");
+        payloadKeyNode.put("type", "string");
+        rootFields.add(payloadKeyNode);
+
+        ObjectNode transactionIdNode = mapper.createObjectNode();
+        transactionIdNode.put("name", "transactionId");
+        transactionIdNode.put("type", "string");
+        rootFields.add(transactionIdNode);
+
+// Create the data field with nested structure
+        ObjectNode dataNode = mapper.createObjectNode();
+        dataNode.put("name", "data");
+
+// Create data type object
+        ObjectNode dataTypeNode = mapper.createObjectNode();
+        dataTypeNode.put("type", "record");
+        dataTypeNode.set("fields", schemaFields);
+// You can copy other fields from the original schema if needed
+        if (schemaNode.has("name")) {
+            dataTypeNode.put("name", schemaNode.get("name").asText());
+        }
+        if (schemaNode.has("namespace")) {
+            dataTypeNode.put("namespace", schemaNode.get("namespace").asText());
+        }
+
+        dataNode.set("type", dataTypeNode);
+        rootFields.add(dataNode);
+
+// Add the fields array to the root object
+        rootNode.set("fields", rootFields);
+
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(rootNode);
     }
 
     // here we convert String type to avro.java.string
